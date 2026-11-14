@@ -13,6 +13,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.randomwalk.app.permission.LocationPermissionGate
+import com.randomwalk.app.ui.ImmersiveMode
 
 class MainActivity : Activity() {
 
@@ -23,6 +24,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(createPermissionGateView())
+        ImmersiveMode.enter(window)
 
         if (savedInstanceState == null && !LocationPermissionGate.hasPreciseLocation(this)) {
             requestLocationPermission()
@@ -89,7 +91,20 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        ImmersiveMode.enter(window)
         updatePermissionGate()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            ImmersiveMode.enter(window)
+        }
+    }
+
+    override fun onDestroy() {
+        ImmersiveMode.exit(window)
+        super.onDestroy()
     }
 
     private fun onPermissionActionClicked() {
