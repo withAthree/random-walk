@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">随机漫步</string>
+    <string name="permission_requesting">正在请求位置权限…</string>
+    <string name="permission_granted">位置权限已授予</string>
+    <string name="permission_required">需要位置权限才能生成漫步路线</string>
+    <string name="permission_approximate_only">需要精确位置权限（仅“大致位置”不够）</string>
+    <string name="permission_retry">重新授权</string>
+    <string name="permission_open_settings">打开系统设置</string>
 </resources>
