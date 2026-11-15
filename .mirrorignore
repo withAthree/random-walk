@@ -1,0 +1,9 @@
+# wsl-mirror 排除清单（真正生效的是 ~/.config/wsl-mirror/random-walk.exclude，本文件仅作说明）
+.git/
+.gradle/
+.kotlin/
+build/
+.idea/
+*.iml
+local.properties
+.mirrorignore
