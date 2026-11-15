@@ -16,7 +16,7 @@
 - Distances and bearings use a spherical Earth with `EARTH_RADIUS_METERS = 6_371_008.8` and `METERS_PER_DEGREE_LAT = 111_194.93`. Do not mix in ellipsoidal or UTM formulas.
 - Tile size is exactly **2000 m** on the ground at the tile row's center latitude. Tile height is `2000 / 111_194.93` degrees of latitude; longitude width is `LAT_STEP_DEGREES / cos(centerLatitude)` so high-latitude tiles are not as narrow as a fixed-degree grid. The center latitude used for width is clamped to ±85° to avoid division by zero.
 - `LatLon` accepts latitude in `[-90, 90]` and longitude in `[-180, 180]`; `GeoMath.normalizeLongitudeDegrees` maps 180° to -180°. Tiles do not span the antimeridian.
-- Location request: `PRIORITY_HIGH_ACCURACY`, interval **5000 ms**, minimum update distance **5 m**. Filter thresholds: max accuracy **50 m**, max age **10_000 ms**, max walking speed **3.0 m/s**, teleport grace **30 m**.
+- Location request: `PRIORITY_HIGH_ACCURACY`, production interval **5000 ms**, minimum update distance **5 m**. The debug probe overrides this to **1000 ms / 1 m** so a short walk produces per-meter `edge_progress` lines; production behavior is unchanged. Filter thresholds: max accuracy **50 m**, max age **10_000 ms**, max walking speed **3.0 m/s**, teleport grace **30 m**.
 - `LocationFilter` is pure Kotlin/JVM. `LocationSampler` is the only class that touches `FusedLocationProviderClient`; `MainActivity` must not request or filter locations directly.
 - The debug probe is active only when `ApplicationInfo.FLAG_DEBUGGABLE` is set. It adds no view, text, permission, dependency, or release behavior. The walk screen still shows only the arrow and the distance.
 - Do not change the compass, route generation, start screen, or SQLite schema in this batch.
@@ -621,6 +621,7 @@ git commit -m "feat: 实现 2km 米制瓦片网格 (Task 3.2)"
 - Create: `app/src/main/java/com/randomwalk/app/debug/LocationDebugProbe.kt`
 - Modify: `app/src/main/java/com/randomwalk/app/MainActivity.kt`
 - Test: `app/src/test/java/com/randomwalk/app/location/LocationFilterTest.kt`
+- Test: `app/src/test/java/com/randomwalk/app/location/LocationSamplingConfigTest.kt`
 
 **Interfaces:**
 - Produces: `data class LocationSample(val latitude: Double, val longitude: Double, val accuracyMeters: Double, val timestampMillis: Long)`
@@ -629,7 +630,8 @@ git commit -m "feat: 实现 2km 米制瓦片网格 (Task 3.2)"
 - Produces: `LocationFilter(maxAccuracyMeters: Double = 50.0, maxAgeMillis: Long = 10_000, maxSpeedMetersPerSecond: Double = 3.0, teleportGraceMeters: Double = 30.0)`
 - Produces: `LocationFilter.evaluate(sample: LocationSample, nowMillis: Long): LocationDecision`
 - Produces: `LocationFilter.reset()`
-- Produces: `LocationSampler(context: Context, filter: LocationFilter = LocationFilter(), onAccepted: (LocationSample) -> Unit, onRejected: (LocationRejection) -> Unit = {}, clock: () -> Long = System::currentTimeMillis)`
+- Produces: `data class LocationSamplingConfig(val intervalMillis: Long, val minDistanceMeters: Float)` with `PRODUCTION = 5000 ms / 5 m` and `DEBUG = 1000 ms / 1 m`.
+- Produces: `LocationSampler(context: Context, filter: LocationFilter = LocationFilter(), onAccepted: (LocationSample) -> Unit, onRejected: (LocationRejection) -> Unit = {}, clock: () -> Long = System::currentTimeMillis, config: LocationSamplingConfig = LocationSamplingConfig.PRODUCTION)`
 - Produces: `LocationSampler.start()` and `LocationSampler.stop()`
 - Produces: `LocationDebugProbe(context: Context).start()` and `.stop()`
 - Consumes: `GeoMath.haversineMeters`, `LatLon`, `LocationPermissionGate.hasPreciseLocation`.
@@ -877,6 +879,12 @@ Run the same command. Expected: `BUILD SUCCESSFUL`, all 10 `LocationFilterTest` 
 
 - [ ] **Step 5: Implement `LocationSampler` and wire the debug probe**
 
+First add `LocationSamplingConfigTest.kt` with tests that pin the production
+request at 5 s / 5 m and the debug request at 1 s / 1 m. Run
+`--tests com.randomwalk.app.location.LocationSamplingConfigTest` and watch it
+fail to compile (missing `LocationSamplingConfig`), then implement the config
+and rerun it to 2/2.
+
 Create `LocationSampler.kt`:
 
 ```kotlin
@@ -895,12 +903,28 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.randomwalk.app.permission.LocationPermissionGate
 
+data class LocationSamplingConfig(
+    val intervalMillis: Long,
+    val minDistanceMeters: Float,
+) {
+    init {
+        require(intervalMillis > 0L) { "intervalMillis must be positive" }
+        require(minDistanceMeters > 0f) { "minDistanceMeters must be positive" }
+    }
+
+    companion object {
+        val PRODUCTION = LocationSamplingConfig(5_000L, 5f)
+        val DEBUG = LocationSamplingConfig(1_000L, 1f)
+    }
+}
+
 class LocationSampler(
     context: Context,
     private val filter: LocationFilter = LocationFilter(),
     private val onAccepted: (LocationSample) -> Unit,
     private val onRejected: (LocationRejection) -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
+    private val config: LocationSamplingConfig = LocationSamplingConfig.PRODUCTION,
 ) {
     private val appContext = context.applicationContext
     private val client: FusedLocationProviderClient =
@@ -923,10 +947,10 @@ class LocationSampler(
 
         val request = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
-            INTERVAL_MILLIS,
+            config.intervalMillis,
         )
-            .setMinUpdateIntervalMillis(INTERVAL_MILLIS)
-            .setMinUpdateDistanceMeters(MIN_DISTANCE_METERS)
+            .setMinUpdateIntervalMillis(config.intervalMillis)
+            .setMinUpdateDistanceMeters(config.minDistanceMeters)
             .setWaitForAccurateLocation(false)
             .build()
 
@@ -971,8 +995,6 @@ class LocationSampler(
 
     private companion object {
         const val TAG = "LocationSampler"
-        const val INTERVAL_MILLIS = 5_000L
-        const val MIN_DISTANCE_METERS = 5f
     }
 }
 ```
@@ -987,9 +1009,10 @@ import android.util.Log
 import com.randomwalk.app.geo.LatLon
 import com.randomwalk.app.location.LocationSample
 import com.randomwalk.app.location.LocationSampler
+import com.randomwalk.app.location.LocationSamplingConfig
 
 /**
- * Debug-only device harness: logs accepted fixes so the 5 s / 5 m request can
+ * Debug-only device harness: logs accepted fixes so a 1 s / 1 m request can
  * be checked with adb logcat. It adds no view and is never started from a
  * non-debuggable build.
  */
@@ -1002,6 +1025,7 @@ class LocationDebugProbe(context: Context) {
         if (sampler != null) return
         val created = LocationSampler(
             context = appContext,
+            config = LocationSamplingConfig.DEBUG,
             onAccepted = ::onSample,
             onRejected = { reason -> Log.d(TAG, "sample_rejected reason=$reason") },
         )
@@ -1127,7 +1151,7 @@ If the repo is checked out on Windows with JDK 17 configured, `gradlew.bat :app:
 
 Walk straight for 10–15 m outdoors, then turn and pace back and forth over that same 10 m for about 60 s. Expected:
 
-- `accepted` lines arrive roughly every 5 s or after at least 5 m of movement; with 10 m of space, expect a small number of samples, not a long track.
+- The debug probe requests updates about every 1 s / 1 m, so `accepted` lines should arrive at roughly meter-scale intervals while walking; with 10 m of space, expect several samples.
 - Every accepted sample has `accuracyMeters <= 50.0`.
 - Any `rejected` line names one of `POOR_ACCURACY`, `STALE`, or `TELEPORT`; nothing crashes and later accepted samples continue.
 - `edge_start` appears once per app foreground session after the first accepted fix.

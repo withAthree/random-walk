@@ -13,12 +13,28 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.randomwalk.app.permission.LocationPermissionGate
 
+data class LocationSamplingConfig(
+    val intervalMillis: Long,
+    val minDistanceMeters: Float,
+) {
+    init {
+        require(intervalMillis > 0L) { "intervalMillis must be positive" }
+        require(minDistanceMeters > 0f) { "minDistanceMeters must be positive" }
+    }
+
+    companion object {
+        val PRODUCTION = LocationSamplingConfig(5_000L, 5f)
+        val DEBUG = LocationSamplingConfig(1_000L, 1f)
+    }
+}
+
 class LocationSampler(
     context: Context,
     private val filter: LocationFilter = LocationFilter(),
     private val onAccepted: (LocationSample) -> Unit,
     private val onRejected: (LocationRejection) -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
+    private val config: LocationSamplingConfig = LocationSamplingConfig.PRODUCTION,
 ) {
     private val appContext = context.applicationContext
     private val client: FusedLocationProviderClient =
@@ -41,10 +57,10 @@ class LocationSampler(
 
         val request = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
-            INTERVAL_MILLIS,
+            config.intervalMillis,
         )
-            .setMinUpdateIntervalMillis(INTERVAL_MILLIS)
-            .setMinUpdateDistanceMeters(MIN_DISTANCE_METERS)
+            .setMinUpdateIntervalMillis(config.intervalMillis)
+            .setMinUpdateDistanceMeters(config.minDistanceMeters)
             .setWaitForAccurateLocation(false)
             .build()
 
@@ -89,7 +105,5 @@ class LocationSampler(
 
     private companion object {
         const val TAG = "LocationSampler"
-        const val INTERVAL_MILLIS = 5_000L
-        const val MIN_DISTANCE_METERS = 5f
     }
 }

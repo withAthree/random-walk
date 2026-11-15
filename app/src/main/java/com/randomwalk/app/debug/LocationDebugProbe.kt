@@ -8,11 +8,12 @@ import com.randomwalk.app.geo.LatLon
 import com.randomwalk.app.geo.PolylineProjection
 import com.randomwalk.app.location.LocationSample
 import com.randomwalk.app.location.LocationSampler
+import com.randomwalk.app.location.LocationSamplingConfig
 import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Debug-only device harness: logs accepted fixes so the 5 s / 5 m request can
+ * Debug-only device harness: logs accepted fixes so a 1 s / 1 m request can
  * be checked with adb logcat. It adds no view and is never started from a
  * non-debuggable build.
  */
@@ -26,6 +27,7 @@ class LocationDebugProbe(context: Context) {
         if (sampler != null) return
         val created = LocationSampler(
             context = appContext,
+            config = LocationSamplingConfig.DEBUG,
             onAccepted = ::onSample,
             onRejected = { reason -> Log.d(TAG, "sample_rejected reason=$reason") },
         )
