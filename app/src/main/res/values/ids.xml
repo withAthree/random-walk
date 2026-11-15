@@ -2,4 +2,5 @@
 <resources>
     <item name="walk_surface" type="id" />
     <item name="walk_screen" type="id" />
+    <item name="walk_hint" type="id" />
 </resources>

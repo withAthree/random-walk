@@ -7,4 +7,5 @@
     <string name="permission_approximate_only">需要精确位置权限（仅“大致位置”不够）</string>
     <string name="permission_retry">重新授权</string>
     <string name="permission_open_settings">打开系统设置</string>
+    <string name="walk_hint">箭头朝上 = 你正对要去的方向，转身对齐它</string>
 </resources>

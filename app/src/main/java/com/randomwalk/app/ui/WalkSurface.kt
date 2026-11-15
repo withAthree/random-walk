@@ -19,12 +19,22 @@ class WalkSurface(context: Context) : FrameLayout(context) {
         screenView.arrowAngleDegrees = angle
     }
 
+    private val firstRunHint = FirstRunHint.from(context)
+
+    private var hintOverlay: WalkHintOverlay? = null
+
+    private val removeHint = Runnable {
+        hintOverlay?.let { removeView(it) }
+        hintOverlay = null
+    }
+
     init {
         id = R.id.walk_surface
         addView(
             screenView,
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT),
         )
+        showFirstRunHintIfNeeded()
     }
 
     fun start() {
@@ -33,5 +43,27 @@ class WalkSurface(context: Context) : FrameLayout(context) {
 
     fun stop() {
         compass.stop()
+    }
+
+    override fun onDetachedFromWindow() {
+        hintOverlay?.removeCallbacks(removeHint)
+        super.onDetachedFromWindow()
+    }
+
+    private fun showFirstRunHintIfNeeded() {
+        if (!firstRunHint.shouldShow()) return
+        firstRunHint.markShown()
+
+        val overlay = WalkHintOverlay(context)
+        overlay.setOnLongClickListener {
+            removeHint.run()
+            true
+        }
+        hintOverlay = overlay
+        addView(
+            overlay,
+            LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT),
+        )
+        overlay.postDelayed(removeHint, 3000L)
     }
 }
