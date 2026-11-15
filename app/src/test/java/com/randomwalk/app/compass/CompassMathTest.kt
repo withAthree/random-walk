@@ -72,6 +72,20 @@ class CompassMathTest {
         assertEquals(180f, CompassMath.shortestDeltaDegrees(180f, 0f), 1e-4f)
     }
 
+    @Test
+    fun arrowAngleIsTargetMinusHeading() {
+        assertEquals(0f, CompassMath.arrowAngleDegrees(0f, 0f), 0.01f)
+        assertEquals(-90f, CompassMath.arrowAngleDegrees(0f, 90f), 0.01f)
+        assertEquals(90f, CompassMath.arrowAngleDegrees(0f, 270f), 0.01f)
+        assertEquals(20f, CompassMath.arrowAngleDegrees(10f, 350f), 0.01f)
+        assertEquals(-20f, CompassMath.arrowAngleDegrees(350f, 10f), 0.01f)
+    }
+
+    @Test
+    fun arrowAngleAtOppositeBearingPointsDown() {
+        assertEquals(180f, CompassMath.arrowAngleDegrees(0f, 180f), 0.01f)
+    }
+
     private fun assertBearingEquals(expected: Float, actual: Float, message: String = "") {
         val diff = abs(((actual - expected + 540f) % 360f) - 180f)
         assertTrue("$message expected=$expected actual=$actual diff=$diff", diff <= 1f)

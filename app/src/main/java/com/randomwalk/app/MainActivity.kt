@@ -14,12 +14,14 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.randomwalk.app.permission.LocationPermissionGate
 import com.randomwalk.app.ui.ImmersiveMode
+import com.randomwalk.app.ui.WalkSurface
 
 class MainActivity : Activity() {
 
     private lateinit var messageView: TextView
     private lateinit var actionButton: Button
     private var permissionRequested = false
+    private var walkSurface: WalkSurface? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,6 +95,12 @@ class MainActivity : Activity() {
         super.onResume()
         ImmersiveMode.enter(window)
         updatePermissionGate()
+        walkSurface?.start()
+    }
+
+    override fun onPause() {
+        walkSurface?.stop()
+        super.onPause()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -103,6 +111,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        walkSurface?.stop()
         ImmersiveMode.exit(window)
         super.onDestroy()
     }
@@ -117,6 +126,18 @@ class MainActivity : Activity() {
 
     private fun updatePermissionGate() {
         if (!::messageView.isInitialized) return
+
+        if (LocationPermissionGate.hasPreciseLocation(this)) {
+            showWalkSurface()
+            return
+        }
+
+        if (walkSurface != null) {
+            walkSurface?.stop()
+            walkSurface = null
+            setContentView(createPermissionGateView())
+        }
+
         if (permissionRequested && !LocationPermissionGate.hasPreciseLocation(this)) {
             messageView.setText(R.string.permission_requesting)
             actionButton.visibility = View.GONE
@@ -124,11 +145,6 @@ class MainActivity : Activity() {
         }
 
         when {
-            LocationPermissionGate.hasPreciseLocation(this) -> {
-                messageView.setText(R.string.permission_granted)
-                actionButton.visibility = View.GONE
-            }
-
             LocationPermissionGate.hasApproximateLocation(this) -> {
                 messageView.setText(R.string.permission_approximate_only)
                 actionButton.visibility = View.VISIBLE
@@ -141,6 +157,14 @@ class MainActivity : Activity() {
                 actionButton.setText(actionLabel())
             }
         }
+    }
+
+    private fun showWalkSurface() {
+        if (walkSurface != null) return
+        val surface = WalkSurface(this)
+        walkSurface = surface
+        setContentView(surface)
+        surface.start()
     }
 
     private fun actionLabel(): Int =

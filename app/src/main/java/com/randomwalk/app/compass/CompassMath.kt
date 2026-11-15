@@ -48,6 +48,14 @@ object CompassMath {
         return if (delta <= -180f) delta + 360f else delta
     }
 
+    /**
+     * On-screen arrow angle in degrees: how far clockwise the arrow must rotate
+     * from up to point toward [targetBearingDegrees] when the device heading is
+     * [deviceHeadingDegrees]. Positive values rotate the Canvas clockwise.
+     */
+    fun arrowAngleDegrees(targetBearingDegrees: Float, deviceHeadingDegrees: Float): Float =
+        shortestDeltaDegrees(deviceHeadingDegrees, targetBearingDegrees)
+
     private fun bearingOf(east: Float, north: Float): Float =
         normalizeBearingDegrees(Math.toDegrees(atan2(east, north).toDouble()).toFloat())
 }
