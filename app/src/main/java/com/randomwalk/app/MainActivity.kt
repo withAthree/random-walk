@@ -3,6 +3,7 @@ package com.randomwalk.app
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -12,6 +13,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.randomwalk.app.debug.LocationDebugProbe
 import com.randomwalk.app.permission.LocationPermissionGate
 import com.randomwalk.app.ui.ImmersiveMode
 import com.randomwalk.app.ui.WalkSurface
@@ -22,6 +24,7 @@ class MainActivity : Activity() {
     private lateinit var actionButton: Button
     private var permissionRequested = false
     private var walkSurface: WalkSurface? = null
+    private var locationDebugProbe: LocationDebugProbe? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -99,6 +102,7 @@ class MainActivity : Activity() {
     }
 
     override fun onPause() {
+        stopDebugProbe()
         walkSurface?.stop()
         super.onPause()
     }
@@ -111,6 +115,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        stopDebugProbe()
         walkSurface?.stop()
         ImmersiveMode.exit(window)
         super.onDestroy()
@@ -129,9 +134,11 @@ class MainActivity : Activity() {
 
         if (LocationPermissionGate.hasPreciseLocation(this)) {
             showWalkSurface()
+            startDebugProbeIfNeeded()
             return
         }
 
+        stopDebugProbe()
         if (walkSurface != null) {
             walkSurface?.stop()
             walkSurface = null
@@ -165,6 +172,19 @@ class MainActivity : Activity() {
         walkSurface = surface
         setContentView(surface)
         surface.start()
+    }
+
+    private fun startDebugProbeIfNeeded() {
+        if (locationDebugProbe != null) return
+        if (!LocationPermissionGate.hasPreciseLocation(this)) return
+        val debuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        if (!debuggable) return
+        locationDebugProbe = LocationDebugProbe(this).also { it.start() }
+    }
+
+    private fun stopDebugProbe() {
+        locationDebugProbe?.stop()
+        locationDebugProbe = null
     }
 
     private fun actionLabel(): Int =
