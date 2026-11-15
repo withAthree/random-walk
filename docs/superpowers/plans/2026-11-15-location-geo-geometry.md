@@ -122,15 +122,15 @@ class GeoMathTest {
 
     @Test
     fun projectionReturnsPointProgressAndDeviation() {
-        val edge = listOf(LatLon(0.0, 0.0), LatLon(0.0, 0.002)) // ~222.4 m north
+        val edge = listOf(LatLon(0.0, 0.0), LatLon(0.0, 0.002)) // ~222.4 m east
         val projection = GeoMath.projectOntoPolyline(LatLon(0.0005, 0.0005), edge)
 
         assertEquals(0, projection.segmentIndex)
         assertEquals(0.25, projection.segmentFraction, 0.001)
         assertEquals(0.25, projection.progressFraction, 0.001)
         assertEquals(55.6, projection.deviationMeters, 0.5)
-        assertEquals(0.0005, projection.point.latitude, 1e-6)
-        assertEquals(0.0, projection.point.longitude, 1e-6)
+        assertEquals(0.0, projection.point.latitude, 1e-6)
+        assertEquals(0.0005, projection.point.longitude, 1e-6)
     }
 
     @Test
@@ -183,7 +183,7 @@ class GeoMathTest {
 
         assertEquals(0.25, GeoMath.projectOntoPolyline(point, forward).progressFraction, 1e-9)
         assertEquals(0.75, GeoMath.projectOntoPolyline(point, reversed).progressFraction, 1e-9)
-        assertEquals(180.0, GeoMath.initialBearingDegrees(reversed.first(), reversed.last()), 0.01)
+        assertEquals(270.0, GeoMath.initialBearingDegrees(reversed.first(), reversed.last()), 0.01)
     }
 
     @Test
@@ -1177,13 +1177,13 @@ import org.junit.Test
 
 class EdgeProgressTrackerTest {
 
-    private val edge = listOf(LatLon(0.0, 0.0), LatLon(0.0, 0.002)) // ~222.4 m north
+    private val edge = listOf(LatLon(0.0, 0.0), LatLon(0.0, 0.002)) // ~222.4 m east
 
     @Test
     fun progressIncreasesAlongStraightEdge() {
         val tracker = EdgeProgressTracker(edge)
         val fractions = listOf(0.0, 0.0005, 0.001, 0.0015, 0.002)
-            .map { latitude -> tracker.update(LatLon(latitude, 0.0)).progressFraction }
+            .map { longitude -> tracker.update(LatLon(0.0, longitude)).progressFraction }
 
         assertEquals(0.0, fractions.first(), 1e-9)
         assertEquals(1.0, fractions.last(), 1e-9)
