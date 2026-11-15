@@ -21,7 +21,7 @@
 - The debug probe is active only when `ApplicationInfo.FLAG_DEBUGGABLE` is set. It adds no view, text, permission, dependency, or release behavior. The walk screen still shows only the arrow and the distance.
 - Do not change the compass, route generation, start screen, or SQLite schema in this batch.
 - Builds use JDK 17: `JAVA_HOME=/home/hkx/.local/lib/jdk-17.0.2`. The default JDK 25 fails with `java.lang.IllegalArgumentException: 25`.
-- WSL has no attached Android device. JVM tests and APK/androidTest compilation run in WSL; device logcat checks run on the Windows host. For Windows commands, install the APK copied from WSL or use a Windows-side Gradle/JDK; do not reuse the WSL `JAVA_HOME` path there. Do not mark 3.3 or 3.4 complete in `openspec/changes/random-walk-app/tasks.md` until the device check passes there.
+- WSL has no attached Android device. JVM tests and APK/androidTest compilation run in WSL; device logcat checks run on the Windows host. For Windows commands, install the APK copied from WSL or use a Windows-side Gradle/JDK; do not reuse the WSL `JAVA_HOME` path there. The available straight-line walking space is about **10 m**, so device checks use 10–15 m; do not require a 60–100 m walk. Do not mark 3.3 or 3.4 complete in `openspec/changes/random-walk-app/tasks.md` until the device check passes there.
 
 ## Review Focus
 
@@ -1125,9 +1125,9 @@ adb logcat -s LocationSampler LocationDebugProbe
 
 If the repo is checked out on Windows with JDK 17 configured, `gradlew.bat :app:installDebug` is an equivalent install path; do not use the WSL `JAVA_HOME` path in a Windows shell.
 
-Walk straight for 60–100 m outdoors. Expected:
+Walk straight for 10–15 m outdoors, then turn and pace back and forth over that same 10 m for about 60 s. Expected:
 
-- `accepted` lines arrive roughly every 5 s or after at least 5 m of movement.
+- `accepted` lines arrive roughly every 5 s or after at least 5 m of movement; with 10 m of space, expect a small number of samples, not a long track.
 - Every accepted sample has `accuracyMeters <= 50.0`.
 - Any `rejected` line names one of `POOR_ACCURACY`, `STALE`, or `TELEPORT`; nothing crashes and later accepted samples continue.
 - `edge_start` appears once per app foreground session after the first accepted fix.
@@ -1347,12 +1347,14 @@ adb logcat -s LocationDebugProbe
 
 If the repo is checked out on Windows with JDK 17 configured, `gradlew.bat :app:installDebug` is an equivalent install path; do not use the WSL `JAVA_HOME` path in a Windows shell.
 
-Walk straight for 50–100 m. Expected:
+Walk straight for 10–15 m. Expected:
 
 - `edge_ready` appears once, after the first two accepted fixes that are at
   least 3 m apart.
 - Every later `edge_progress` line has a larger `progress_m` than the previous one while the walk stays straight.
-- `fraction` rises from near 0 toward 1.0 and never exceeds 1.0.
+- `fraction` increases but stays small because the synthetic reference edge is
+  200 m; a 10 m walk reaches only about 0.05. The 1.0 saturation case is
+  covered by `pointBeyondEndClampsToEnd`, not by this short walk.
 - `deviation_m` stays small (roughly the GPS accuracy) on a straight path.
 
 If GPS jitter causes one small regression, repeat the straight-line check; the pure projection test pins the math. Do not mark 3.4 complete in `openspec/changes/random-walk-app/tasks.md` until this check passes on the Windows host.
