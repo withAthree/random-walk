@@ -3,9 +3,9 @@
 ## 1. 工程骨架
 
 - [x] 1.1 创建 Android 工程（Kotlin，minSdk 26，applicationId 待定）并确认 `./gradlew assembleDebug` 成功产出 APK
-- [ ] 1.2 加入 Play Services Location 依赖与 `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` / `INTERNET` 权限，确认安装后系统权限弹窗出现且拒绝后应用不崩溃
-- [ ] 1.3 配置全屏沉浸 + 深色主题 + `FLAG_KEEP_SCREEN_ON`，确认漫步页无状态栏、无导航栏、屏幕不熄灭
-- [ ] 1.4 建立 `app/src/test` 的 JVM 单测与 `app/src/androidTest` 骨架，确认 `./gradlew test` 与 `connectedDebugAndroidTest` 至少各跑过一个空断言用例
+- [x] 1.2 加入 Play Services Location 依赖与 `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` / `INTERNET` 权限，确认安装后系统权限弹窗出现且拒绝后应用不崩溃
+- [x] 1.3 配置全屏沉浸 + 深色主题 + `FLAG_KEEP_SCREEN_ON`，确认漫步页无状态栏、无导航栏、屏幕不熄灭
+- [x] 1.4 建立 `app/src/test` 的 JVM 单测与 `app/src/androidTest` 骨架，确认 `./gradlew test` 与 `connectedDebugAndroidTest` 至少各跑过一个空断言用例
 
 ## 2. 罗盘闭环（假数据）
 
