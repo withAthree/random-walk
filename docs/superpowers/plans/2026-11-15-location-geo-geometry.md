@@ -1395,9 +1395,12 @@ If Android Studio builds on Windows, use its configured JDK; do not use the WSL
 
 Walk straight for 10–15 m and export the log **before** turning around. Do not
 include the return leg: walking back toward the edge start makes `progress_m`
-decrease by design. The first `LocationDebugProbe` line must be `edge_start`;
-if the first line is already `edge_progress`, the log was started after the
-edge was created and the capture is invalid. Expected:
+decrease by design. `edge_ready` logs the reference `bearing`; after it appears,
+keep walking roughly along that bearing. If `progress_m` decreases, you turned
+around or moved away from the edge line; discard that capture and repeat. The
+first `LocationDebugProbe` line must be `edge_start`; if the first line is
+already `edge_progress`, the log was started after the edge was created and the
+capture is invalid. Expected:
 
 - `edge_ready` appears once, after the first two accepted fixes that are at
   least 3 m apart.
