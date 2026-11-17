@@ -333,7 +333,7 @@ Assertions:
 
 - `parse(SAMPLE_JSON).ways.size == 9` and `skippedWays == 2`.
 - Way 1 has `nodeIds == listOf(1L, 2L)` and `geometry == listOf(LatLon(0.0, 0.0), LatLon(0.0, 0.001))`.
-- `parse(SAMPLE_JSON).ways.filter(WalkableWayFilter::isWalkable).map { it.id }.toSet() == setOf(1L, 2L, 5L, 6L, 9L)`.
+- `parse(SAMPLE_JSON).ways.filter { WalkableWayFilter.isWalkable(it.tags) }.map { it.id }.toSet() == setOf(1L, 2L, 5L, 6L, 9L)`.
 - `assertThrows(OsmParseException::class.java) { OsmParser.parse("{not json") }`.
 - `skipsWayWithMissingGeometryWithoutThrowing` is implied by the fixture; keep it as a separate named assertion.
 
@@ -411,8 +411,8 @@ Expected: compilation fails with unresolved references.
 
 ```kotlin
 val onewayFoot = tags["oneway:foot"]
-var forward = onewayFoot !in setOf("yes", "true", "1", "-1")
-var backward = onewayFoot !in setOf("yes", "true", "1")
+var forward = onewayFoot != "-1"          // yes/true/1/no/default allow forward
+var backward = onewayFoot !in setOf("yes", "true", "1") // -1/no/default allow backward
 if (tags["foot:forward"] == "no") forward = false
 if (tags["foot:backward"] == "no") backward = false
 return buildSet {
