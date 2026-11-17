@@ -21,7 +21,7 @@
 - The debug probe is active only when `ApplicationInfo.FLAG_DEBUGGABLE` is set. It adds no view, text, permission, dependency, or release behavior. The walk screen still shows only the arrow and the distance.
 - Do not change the compass, route generation, start screen, or SQLite schema in this batch.
 - Builds use JDK 17: `JAVA_HOME=/home/hkx/.local/lib/jdk-17.0.2`. The default JDK 25 fails with `java.lang.IllegalArgumentException: 25`.
-- WSL has no attached Android device. JVM tests and APK/androidTest compilation run in WSL; device logcat checks run on the Windows host. For Windows commands, install the APK copied from WSL or use a Windows-side Gradle/JDK; do not reuse the WSL `JAVA_HOME` path there. The available straight-line walking space is about **10 m**, so device checks use 10–15 m; do not require a 60–100 m walk. Do not mark 3.3 or 3.4 complete in `openspec/changes/random-walk-app/tasks.md` until the device check passes there.
+- WSL has no attached Android device. JVM tests and APK/androidTest compilation run in WSL; device logcat checks run on the Windows host. Device checks work with Android Studio **Wi-Fi debugging** via the IDE's Run and Logcat, without USB or manual APK copying. If using CLI `adb` instead, the paired Wi-Fi device must be visible to host adb; install the APK copied from WSL or use a Windows-side Gradle/JDK, and do not reuse the WSL `JAVA_HOME` path there. The available straight-line walking space is about **10 m**, so device checks use 10–15 m; do not require a 60–100 m walk. Do not mark 3.3 or 3.4 complete in `openspec/changes/random-walk-app/tasks.md` until the device check passes there.
 
 ## Review Focus
 
@@ -1138,8 +1138,13 @@ Expected: `BUILD SUCCESSFUL`; no unresolved references to `LocationSampler` or `
 
 - [ ] **Step 7: Device check — accepted sample density**
 
-Build the APK in WSL (Step 6). Then, on the Windows host with the phone
-attached and `app-debug.apk` copied from `app/build/outputs/apk/debug/`:
+This check does **not** require USB. With the phone connected through Android
+Studio's Wi-Fi debugging, select it in the device selector and click **Run**;
+Android Studio builds and installs the current debug APK. Open **Logcat**,
+clear it, and filter by `tag:LocationSampler` or `tag:LocationDebugProbe` (or
+search for those tag names). No manual APK copy is needed.
+
+CLI alternative, only if the same Wi-Fi device is paired with host adb:
 
 ```bash
 adb install -r app-debug.apk
@@ -1147,7 +1152,8 @@ adb logcat -c
 adb logcat -s LocationSampler LocationDebugProbe
 ```
 
-If the repo is checked out on Windows with JDK 17 configured, `gradlew.bat :app:installDebug` is an equivalent install path; do not use the WSL `JAVA_HOME` path in a Windows shell.
+If Android Studio builds on Windows, use its configured JDK; do not use the WSL
+`JAVA_HOME` path in a Windows shell.
 
 Walk straight for 10–15 m outdoors, then turn and pace back and forth over that same 10 m for about 60 s. Expected:
 
@@ -1360,8 +1366,12 @@ Expected: `BUILD SUCCESSFUL`, all 3 `EdgeProgressTrackerTest` tests pass, and th
 
 - [ ] **Step 5: Device check — progress is monotonic on a straight walk**
 
-Build the APK in WSL (Step 4). Then, on the Windows host with the phone
-attached and `app-debug.apk` copied from `app/build/outputs/apk/debug/`:
+This check does **not** require USB. With the phone connected through Android
+Studio's Wi-Fi debugging, select it in the device selector and click **Run**;
+Android Studio builds and installs the current debug APK. Open **Logcat**,
+clear it, and filter by `tag:LocationDebugProbe`. No manual APK copy is needed.
+
+CLI alternative, only if the same Wi-Fi device is paired with host adb:
 
 ```bash
 adb install -r app-debug.apk
@@ -1369,7 +1379,8 @@ adb logcat -c
 adb logcat -s LocationDebugProbe
 ```
 
-If the repo is checked out on Windows with JDK 17 configured, `gradlew.bat :app:installDebug` is an equivalent install path; do not use the WSL `JAVA_HOME` path in a Windows shell.
+If Android Studio builds on Windows, use its configured JDK; do not use the WSL
+`JAVA_HOME` path in a Windows shell.
 
 Walk straight for 10–15 m. Expected:
 
