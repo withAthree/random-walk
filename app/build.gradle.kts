@@ -37,6 +37,14 @@ android {
     }
 }
 
+// Unit tests run on the JVM and use com.sun.net.httpserver for the stub server,
+// which is absent from android.jar. Compile them against the real JDK instead.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    if (name.contains("UnitTest")) {
+        compilerOptions.noJdk.set(false)
+    }
+}
+
 dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
