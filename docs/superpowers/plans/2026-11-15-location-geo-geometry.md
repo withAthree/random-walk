@@ -16,7 +16,7 @@
 - Distances and bearings use a spherical Earth with `EARTH_RADIUS_METERS = 6_371_008.8` and `METERS_PER_DEGREE_LAT = 111_194.93`. Do not mix in ellipsoidal or UTM formulas.
 - Tile size is exactly **2000 m** on the ground at the tile row's center latitude. Tile height is `2000 / 111_194.93` degrees of latitude; longitude width is `LAT_STEP_DEGREES / cos(centerLatitude)` so high-latitude tiles are not as narrow as a fixed-degree grid. The center latitude used for width is clamped to ±85° to avoid division by zero.
 - `LatLon` accepts latitude in `[-90, 90]` and longitude in `[-180, 180]`; `GeoMath.normalizeLongitudeDegrees` maps 180° to -180°. Tiles do not span the antimeridian.
-- Location request: `PRIORITY_HIGH_ACCURACY`, production interval **5000 ms**, minimum update distance **5 m**. The debug probe overrides this to **1000 ms / 1 m** so a short walk produces per-meter `edge_progress` lines; production behavior is unchanged. Filter thresholds: max accuracy **50 m**, max age **10_000 ms**, max walking speed **3.0 m/s**, teleport grace **30 m**.
+- Location request: `PRIORITY_HIGH_ACCURACY`, production interval **5000 ms**, minimum update distance **5 m**. The debug probe overrides this to a **1000 ms minimum interval and 1 m minimum distance** so a short walk produces meter-scale `edge_progress` lines; production behavior is unchanged. Filter thresholds: max accuracy **50 m**, max age **10_000 ms**, max walking speed **3.0 m/s**, teleport grace **30 m**.
 - `LocationFilter` is pure Kotlin/JVM. `LocationSampler` is the only class that touches `FusedLocationProviderClient`; `MainActivity` must not request or filter locations directly.
 - The debug probe is active only when `ApplicationInfo.FLAG_DEBUGGABLE` is set. It adds no view, text, permission, dependency, or release behavior. The walk screen still shows only the arrow and the distance.
 - Do not change the compass, route generation, start screen, or SQLite schema in this batch.
@@ -1160,7 +1160,7 @@ If Android Studio builds on Windows, use its configured JDK; do not use the WSL
 
 Walk straight for 10–15 m outdoors, then turn and pace back and forth over that same 10 m for about 60 s. Expected:
 
-- The debug probe requests updates about every 1 s / 1 m, so `accepted` lines should arrive at roughly meter-scale intervals while walking; with 10 m of space, expect several samples.
+- The debug probe requests updates with a **1 s minimum interval and 1 m minimum distance**, so `accepted` lines should arrive after roughly each meter of reported movement, and no more often than about once per second; a slow walk does not produce one line per second. With 10 m of space, expect several samples.
 - Every accepted sample has `accuracyMeters <= 50.0`.
 - Any `rejected` line names one of `POOR_ACCURACY`, `STALE`, or `TELEPORT`; nothing crashes and later accepted samples continue.
 - `edge_start` appears once per app foreground session after the first accepted fix.

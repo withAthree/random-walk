@@ -13,9 +13,9 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Debug-only device harness: logs accepted fixes so a 1 s / 1 m request can
- * be checked with adb logcat. It adds no view and is never started from a
- * non-debuggable build.
+ * Debug-only device harness: logs accepted fixes so a request with a 1 s
+ * minimum interval and 1 m minimum distance can be checked in Logcat. It adds
+ * no view and is never started from a non-debuggable build.
  */
 class LocationDebugProbe(context: Context) {
     private val appContext = context.applicationContext
