@@ -8,4 +8,14 @@
     <string name="permission_retry">重新授权</string>
     <string name="permission_open_settings">打开系统设置</string>
     <string name="walk_hint">箭头朝上 = 你正对要去的方向，转身对齐它</string>
+    <string name="preparation_preparing">正在准备步行数据…</string>
+    <string name="preparation_no_network">需要网络连接才能准备此区域</string>
+    <string name="preparation_timeout">准备超时，请重试</string>
+    <string name="preparation_server_error">数据准备失败，请重试</string>
+    <string name="preparation_insufficient_coverage">该区域无可用步行数据</string>
+    <string name="preparation_location_unavailable">无法获取当前位置，请到户外重试</string>
+    <string name="preparation_cancel">取消</string>
+    <string name="preparation_retry">重试</string>
+    <string name="start_placeholder_title">随机漫步</string>
+    <string name="start_placeholder_action">重新准备</string>
 </resources>
