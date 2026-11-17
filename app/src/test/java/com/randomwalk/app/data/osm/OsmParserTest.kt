@@ -92,6 +92,26 @@ class OsmParserTest {
     }
 
     @Test
+    fun skipsWayWithMalformedIdWithoutThrowing() {
+        val json = """{"elements":[{"type":"way","id":"abc","nodes":[1,2],"geometry":[{"lat":0.0,"lon":0.0},{"lat":0.0,"lon":0.001}],"tags":{"highway":"footway"}}]}"""
+
+        val result = OsmParser.parse(json)
+
+        assertTrue(result.ways.isEmpty())
+        assertEquals(1, result.skippedWays)
+    }
+
+    @Test
+    fun skipsWayWithOutOfRangeCoordinateWithoutThrowing() {
+        val json = """{"elements":[{"type":"way","id":1,"nodes":[1,2],"geometry":[{"lat":100.0,"lon":0.0},{"lat":0.0,"lon":0.001}],"tags":{"highway":"footway"}}]}"""
+
+        val result = OsmParser.parse(json)
+
+        assertTrue(result.ways.isEmpty())
+        assertEquals(1, result.skippedWays)
+    }
+
+    @Test
     fun throwsOsmParseExceptionForMalformedJson() {
         assertThrows(OsmParseException::class.java) { OsmParser.parse("{not json") }
     }

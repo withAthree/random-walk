@@ -9,8 +9,10 @@ object WalkableWayFilter {
         "trunk",
         "trunk_link",
         "construction",
+        "proposed",
         "raceway",
         "bus_guideway",
+        "escape",
     )
 
     private val RESTRICTED_ACCESS = setOf("private", "no")
