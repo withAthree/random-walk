@@ -567,6 +567,7 @@ git commit -m "feat: simplify OSM nodes and build directed street edges"
 ### Task 4: Online preparation fetcher with mirrors, retries, and time bound (4.4)
 
 **Files:**
+- Create: `app/src/main/java/com/randomwalk/app/data/PreparationFailure.kt`
 - Create: `app/src/main/java/com/randomwalk/app/data/net/TileFetcher.kt`
 - Create: `app/src/main/java/com/randomwalk/app/data/net/HttpUrlConnectionTransport.kt`
 - Create: `app/src/main/java/com/randomwalk/app/data/net/OnlineOsmFetcher.kt`
@@ -580,7 +581,8 @@ git commit -m "feat: simplify OSM nodes and build directed street edges"
 - Produces: `TileFetcher.fetch(bounds: TileBounds, isCancelled: () -> Boolean = { false }): OnlineFetchResult` and `cancel()`
 - Produces: `OnlineOsmFetcher(mirrors, transport, clock, totalBudgetMillis, attemptTimeoutMillis, maxPasses)` implementing `TileFetcher`
 - Produces: `OverpassQuery.forBounds(bounds: TileBounds): String`
-- Consumes: `TileBounds`, `PreparationFailure`.
+- Produces: `enum class PreparationFailure { NO_NETWORK, TIMEOUT, SERVER_ERROR, INSUFFICIENT_COVERAGE, LOCATION_UNAVAILABLE }` in `data/PreparationFailure.kt`
+- Consumes: `TileBounds`.
 
 - [ ] **Step 1: Write the failing fetcher tests with a local stub server**
 
@@ -615,6 +617,10 @@ JAVA_HOME=/home/hkx/.local/lib/jdk-17.0.2 ./gradlew :app:testDebugUnitTest \
 Expected: compilation fails with unresolved references.
 
 - [ ] **Step 3: Implement the query, transport, and fetcher**
+
+`PreparationFailure`:
+
+- Create `app/src/main/java/com/randomwalk/app/data/PreparationFailure.kt` in package `com.randomwalk.app.data` with exactly the five values listed in the interfaces. Task 5 and Task 8 consume this enum; do not redefine it there.
 
 `OverpassQuery.forBounds`:
 
@@ -663,7 +669,8 @@ Run the same command as Step 2. Expected: PASS. If the in-flight cancellation te
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/randomwalk/app/data/net \
+git add app/src/main/java/com/randomwalk/app/data/PreparationFailure.kt \
+  app/src/main/java/com/randomwalk/app/data/net \
   app/src/test/java/com/randomwalk/app/data/net
 git commit -m "feat: add mirror-rotating Overpass fetcher with a 20s budget"
 ```
@@ -974,7 +981,7 @@ git commit -m "feat: snap to nearest node and keep the connected street subgraph
 - Create: `app/src/test/java/com/randomwalk/app/ui/PreparationTextTest.kt`
 
 **Interfaces:**
-- Produces: `enum class PreparationFailure { NO_NETWORK, TIMEOUT, SERVER_ERROR, INSUFFICIENT_COVERAGE, LOCATION_UNAVAILABLE }`
+- Consumes: `PreparationFailure` (defined in Task 4)
 - Produces: `sealed interface PreparationResult { data class Ready(val graph: StreetGraph); data class Failed(val reason: PreparationFailure); data object Cancelled }`
 - Produces: `DataReadinessGate(tileEnsurer: TileEnsurer, repository: StreetRepository).prepare(center, forceRefresh, isCancelled, onProgress): PreparationResult` and `cancel()`
 - Produces: `PreparationUiState.Preparing(completed, total)`, `Ready`, `Failed(reason)`, `Cancelled`
@@ -982,7 +989,7 @@ git commit -m "feat: snap to nearest node and keep the connected street subgraph
 - Produces: `PreparationScreen(context, controller, onReady, onCancelled)` with `start()`/`stop()`
 - Produces: `AndroidPreparationController(context, fixedCenter: LatLon? = null)`
 - Produces: `PreparationText.messageRes(reason: PreparationFailure): Int`
-- Consumes: `TileEnsurer`, `TilePlanner`, `StreetRepository`, `StreetGraph`, `LocationSampler`, `StreetDatabaseProvider`, `OnlineOsmFetcher`.
+- Consumes: `TileEnsurer`, `TilePlanner`, `StreetRepository`, `StreetGraph`, `PreparationFailure`, `LocationSampler`, `StreetDatabaseProvider`, `OnlineOsmFetcher`.
 
 - [ ] **Step 1: Write the failing gate and text tests**
 
