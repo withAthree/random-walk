@@ -1142,7 +1142,10 @@ This check does **not** require USB. With the phone connected through Android
 Studio's Wi-Fi debugging, select it in the device selector and click **Run**;
 Android Studio builds and installs the current debug APK. Open **Logcat**,
 clear it, and filter by `tag:LocationSampler` or `tag:LocationDebugProbe` (or
-search for those tag names). No manual APK copy is needed.
+search for those tag names). No manual APK copy is needed. Clear Logcat
+**before launching** the app and do not clear it again once movement starts;
+stand still until the first `edge_start` appears, then walk the full 10–15 m
+with the log still running.
 
 CLI alternative, only if the same Wi-Fi device is paired with host adb:
 
@@ -1370,6 +1373,9 @@ This check does **not** require USB. With the phone connected through Android
 Studio's Wi-Fi debugging, select it in the device selector and click **Run**;
 Android Studio builds and installs the current debug APK. Open **Logcat**,
 clear it, and filter by `tag:LocationDebugProbe`. No manual APK copy is needed.
+Clear Logcat **before launching** the app and do not clear it again once
+movement starts; capture `edge_start` and `edge_ready` before walking, then the
+full 10–15 m.
 
 CLI alternative, only if the same Wi-Fi device is paired with host adb:
 
