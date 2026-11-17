@@ -2,6 +2,7 @@ package com.randomwalk.app
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.view.View
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -34,7 +35,11 @@ class WalkHintTest {
 
     @Test
     fun hintShowsOnceAndLongPressDismissesIt() {
-        val first = ActivityScenario.launch(MainActivity::class.java)
+        val intent = Intent(
+            InstrumentationRegistry.getInstrumentation().targetContext,
+            MainActivity::class.java,
+        ).putExtra(MainActivity.EXTRA_SKIP_DATA_PREPARATION, true)
+        val first = ActivityScenario.launch<MainActivity>(intent)
         try {
             first.onActivity { activity ->
                 val hint = activity.findViewById<View>(R.id.walk_hint)
@@ -46,7 +51,7 @@ class WalkHintTest {
             first.close()
         }
 
-        val second = ActivityScenario.launch(MainActivity::class.java)
+        val second = ActivityScenario.launch<MainActivity>(intent)
         try {
             second.onActivity { activity ->
                 assertNull("hint must not reappear", activity.findViewById<View>(R.id.walk_hint))
