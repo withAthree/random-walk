@@ -1142,8 +1142,9 @@ This check does **not** require USB. With the phone connected through Android
 Studio's Wi-Fi debugging, select it in the device selector and click **Run**;
 Android Studio builds and installs the current debug APK. Open **Logcat**,
 clear it, and filter by `tag:LocationSampler` or `tag:LocationDebugProbe` (or
-search for those tag names). No manual APK copy is needed. Clear Logcat
-**before launching** the app and do not clear it again once movement starts;
+search for those tag names). No manual APK copy is needed. **Stop the app
+first**, then clear Logcat **before launching** it again; clearing Logcat alone
+does not reset the probe's edge state. Do not clear it again once movement starts;
 stand still until the first `edge_start` appears, then walk the full 10–15 m
 with the log still running.
 
@@ -1158,7 +1159,10 @@ adb logcat -s LocationSampler LocationDebugProbe
 If Android Studio builds on Windows, use its configured JDK; do not use the WSL
 `JAVA_HOME` path in a Windows shell.
 
-Walk straight for 10–15 m outdoors, then turn and pace back and forth over that same 10 m for about 60 s. Expected:
+Walk straight for 10–15 m outdoors. If this same run is also used for the 3.4
+check, export the one-way log **before** turning around; the return leg is not
+valid 3.4 evidence. Then turn and pace back and forth over that same 10 m for
+about 60 s if you still need more 3.3 samples. Expected:
 
 - The debug probe requests updates with a **1 s minimum interval and 1 m minimum distance**, so `accepted` lines should arrive after roughly each meter of reported movement, and no more often than about once per second; a slow walk does not produce one line per second. With 10 m of space, expect several samples.
 - Every accepted sample has `accuracyMeters <= 50.0`.
@@ -1373,7 +1377,8 @@ This check does **not** require USB. With the phone connected through Android
 Studio's Wi-Fi debugging, select it in the device selector and click **Run**;
 Android Studio builds and installs the current debug APK. Open **Logcat**,
 clear it, and filter by `tag:LocationDebugProbe`. No manual APK copy is needed.
-Clear Logcat **before launching** the app and do not clear it again once
+**Stop the app first**, then clear Logcat **before launching** it again; clearing
+Logcat alone does not reset the probe's edge state. Do not clear it again once
 movement starts; capture `edge_start` and `edge_ready` before walking, then the
 full 10–15 m.
 
@@ -1388,7 +1393,11 @@ adb logcat -s LocationDebugProbe
 If Android Studio builds on Windows, use its configured JDK; do not use the WSL
 `JAVA_HOME` path in a Windows shell.
 
-Walk straight for 10–15 m. Expected:
+Walk straight for 10–15 m and export the log **before** turning around. Do not
+include the return leg: walking back toward the edge start makes `progress_m`
+decrease by design. The first `LocationDebugProbe` line must be `edge_start`;
+if the first line is already `edge_progress`, the log was started after the
+edge was created and the capture is invalid. Expected:
 
 - `edge_ready` appears once, after the first two accepted fixes that are at
   least 3 m apart.
