@@ -153,6 +153,12 @@ class WalkServiceTest {
         return false
     }
 
+    private fun activeNotification(): android.app.Notification? =
+        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+            .activeNotifications
+            .firstOrNull { it.packageName == context.packageName }
+            ?.notification
+
     private fun activeNotificationId(): Int? =
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
             .activeNotifications
@@ -167,6 +173,11 @@ class WalkServiceTest {
         assertEquals(0, generator.calls)
         assertTrue(awaitUntil { source.starts == 1 })
         assertTrue(awaitUntil { activeNotificationId() != null })
+        assertEquals(
+            context.getString(R.string.walk_waiting),
+            activeNotification()?.extras?.getCharSequence(android.app.Notification.EXTRA_TEXT)
+                ?.toString(),
+        )
 
         emit?.invoke(LocationSample(origin.latitude, origin.longitude, 5.0, 0L))
 
