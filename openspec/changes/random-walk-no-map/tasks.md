@@ -24,7 +24,7 @@ The old `random-walk-app` change completed the foundation this change reuses: ta
 
 - [x] 3.1 Delete `app/src/main/java/com/randomwalk/app/data/`, `preparation/`, `walk/FakeWalk.kt`, and `debug/LocationDebugProbe.kt` (and their tests) now that the new walk path does not reference them. Verify with `rg` that no production or test source references `Street`, `Overpass`, `Tile`, `Preparation`, or `FakeWalk`, and that `./gradlew :app:testDebugUnitTest` passes.
 - [x] 3.2 Remove `INTERNET` from `AndroidManifest.xml`; remove the `org.json` and `sqlite-jdbc` test dependencies and the UnitTest-only `noJdk` compiler override from `app/build.gradle.kts`. Verify the merged manifest has only the location, foreground-service, and notification permissions (and no `ACCESS_BACKGROUND_LOCATION`) and `./gradlew :app:assembleDebug` passes.
-- [ ] 3.3 Remove obsolete strings, ids, and `docs/street-data-schema.md`; check `rg` for `preparation_`, `start_placeholder`, `street`, `overpass`, and `ODbL`. Verify with `./gradlew :app:testDebugUnitTest` and `:app:assembleDebugAndroidTest`.
+- [x] 3.3 Remove obsolete strings, ids, and `docs/street-data-schema.md`; check `rg` for `preparation_`, `start_placeholder`, `street`, `overpass`, and `ODbL`. Verify with `./gradlew :app:testDebugUnitTest` and `:app:assembleDebugAndroidTest`.
 - [ ] 3.4 Inspect the built APK permissions with `aapt dump permissions app/build/outputs/apk/debug/app-debug.apk` (or the available APK analyzer) and confirm `android.permission.INTERNET` is absent. Record the command and result in the change notes.
 
 ## 4. Gesture, privacy, and documentation

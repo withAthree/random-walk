@@ -3,11 +3,4 @@
     <item name="walk_surface" type="id" />
     <item name="walk_screen" type="id" />
     <item name="walk_hint" type="id" />
-    <item name="preparation_screen" type="id" />
-    <item name="preparation_status" type="id" />
-    <item name="preparation_progress" type="id" />
-    <item name="preparation_primary_action" type="id" />
-    <item name="preparation_secondary_action" type="id" />
-    <item name="start_placeholder" type="id" />
-    <item name="start_placeholder_action" type="id" />
 </resources>
