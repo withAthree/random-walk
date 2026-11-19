@@ -244,6 +244,7 @@ class MainActivity : Activity() {
 
     private fun stopWalk() {
         walkController?.stopWalk()
+        unbindWalkService()
         stopService(Intent(this, WalkService::class.java))
         walkController = null
         walkSurface?.unbind()
