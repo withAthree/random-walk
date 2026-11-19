@@ -11,7 +11,7 @@ class CompassController(
     context: Context,
     targetBearingDegrees: Float,
     private val onArrowAngleDegrees: (Float) -> Unit,
-) : SensorEventListener {
+) : SensorEventListener, WalkCompass {
 
     private val sensorManager =
         context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -23,7 +23,7 @@ class CompassController(
     private var lastTimestampNanos = 0L
     private var lowAccuracy = false
 
-    fun start() {
+    override fun start() {
         if (registered) return
         val sensor = rotationVector
         if (sensor == null) {
@@ -42,7 +42,7 @@ class CompassController(
         if (!registered) Log.w(TAG, "registerListener returned false")
     }
 
-    fun stop() {
+    override fun stop() {
         if (!registered) return
         sensorManager.unregisterListener(this)
         registered = false
@@ -66,7 +66,7 @@ class CompassController(
         onArrowAngleDegrees(targetTracker.onHeading(heading))
     }
 
-    fun updateTargetBearing(degrees: Float) {
+    override fun updateTargetBearing(degrees: Float) {
         targetTracker.updateTargetBearing(degrees)?.let(onArrowAngleDegrees)
     }
 
