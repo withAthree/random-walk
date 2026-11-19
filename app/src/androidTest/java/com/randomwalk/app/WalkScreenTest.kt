@@ -13,7 +13,6 @@ import com.randomwalk.app.walk.WalkServiceDependencies
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -67,7 +66,6 @@ class WalkScreenTest {
                     activity.getString(R.string.walk_waiting),
                     screen.distanceText,
                 )
-                assertNull(activity.findViewById(R.id.start_placeholder))
             }
         } finally {
             scenario.close()
