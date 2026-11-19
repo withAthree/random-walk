@@ -144,6 +144,15 @@ class WalkServiceTest {
         return null
     }
 
+    private fun awaitUntil(predicate: () -> Boolean): Boolean {
+        val deadline = System.currentTimeMillis() + 5_000
+        while (System.currentTimeMillis() < deadline) {
+            if (predicate()) return true
+            Thread.sleep(50)
+        }
+        return false
+    }
+
     private fun activeNotificationId(): Int? =
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
             .activeNotifications
@@ -156,8 +165,8 @@ class WalkServiceTest {
 
         assertTrue(controller!!.currentState().waitingForLocation)
         assertEquals(0, generator.calls)
-        assertEquals(1, source.starts)
-        assertTrue(activeNotificationId() != null)
+        assertTrue(awaitUntil { source.starts == 1 })
+        assertTrue(awaitUntil { activeNotificationId() != null })
 
         emit?.invoke(LocationSample(origin.latitude, origin.longitude, 5.0, 0L))
 
@@ -165,6 +174,15 @@ class WalkServiceTest {
         assertEquals(80, state!!.remainingMeters)
         assertEquals(1, generator.calls)
         assertFalse(state.waitingForLocation)
+    }
+
+    @Test
+    fun noFixKeepsWaitingAndDoesNotGenerateALeg() {
+        startAndBind()
+
+        assertEquals(0, generator.calls)
+        assertTrue(controller!!.currentState().waitingForLocation)
+        assertTrue(awaitUntil { source.starts == 1 })
     }
 
     @Test

@@ -2,36 +2,49 @@ package com.randomwalk.app
 
 import android.Manifest
 import android.app.Activity
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
-import android.content.pm.ApplicationInfo
+import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.randomwalk.app.debug.LocationDebugProbe
-import com.randomwalk.app.geo.LatLon
 import com.randomwalk.app.permission.LocationPermissionGate
-import com.randomwalk.app.preparation.AndroidPreparationController
-import com.randomwalk.app.preparation.PreparationController
 import com.randomwalk.app.ui.ImmersiveMode
-import com.randomwalk.app.ui.PreparationScreen
+import com.randomwalk.app.ui.WalkController
 import com.randomwalk.app.ui.WalkSurface
+import com.randomwalk.app.walk.WalkService
 
 class MainActivity : Activity() {
 
     private lateinit var messageView: TextView
     private lateinit var actionButton: Button
     private var permissionRequested = false
+    private var notificationPermissionRequested = false
     private var walkSurface: WalkSurface? = null
-    private var locationDebugProbe: LocationDebugProbe? = null
-    private var preparationScreen: PreparationScreen? = null
-    private var preparationController: PreparationController? = null
-    private var startPlaceholderShown = false
+    private var walkController: WalkController? = null
+    private var serviceBound = false
+
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            walkController = service as WalkService.LocalBinder
+            walkSurface?.bind(walkController!!)
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            walkController = null
+            walkSurface?.unbind()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +56,52 @@ class MainActivity : Activity() {
         } else {
             updatePermissionGate()
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (LocationPermissionGate.hasPreciseLocation(this)) {
+            startWalkService()
+            bindWalkService()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ImmersiveMode.enter(window)
+        updatePermissionGate()
+        walkSurface?.start()
+    }
+
+    override fun onPause() {
+        walkSurface?.stop()
+        super.onPause()
+    }
+
+    override fun onStop() {
+        unbindWalkService()
+        walkSurface?.stop()
+        super.onStop()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            ImmersiveMode.enter(window)
+        }
+    }
+
+    override fun onDestroy() {
+        unbindWalkService()
+        walkSurface?.release()
+        walkSurface = null
+        ImmersiveMode.exit(window)
+        super.onDestroy()
+    }
+
+    override fun onBackPressed() {
+        stopWalk()
+        super.onBackPressed()
     }
 
     private fun createPermissionGateView(): LinearLayout {
@@ -97,39 +156,11 @@ class MainActivity : Activity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == LocationPermissionGate.REQUEST_CODE) {
             permissionRequested = false
+            if (LocationPermissionGate.hasPreciseLocation(this)) {
+                maybeRequestNotificationPermission()
+            }
             updatePermissionGate()
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        ImmersiveMode.enter(window)
-        updatePermissionGate()
-        walkSurface?.start()
-    }
-
-    override fun onPause() {
-        stopDebugProbe()
-        walkSurface?.stop()
-        super.onPause()
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            ImmersiveMode.enter(window)
-        }
-    }
-
-    override fun onDestroy() {
-        preparationScreen?.stop()
-        preparationScreen = null
-        preparationController?.close()
-        preparationController = null
-        stopDebugProbe()
-        walkSurface?.stop()
-        ImmersiveMode.exit(window)
-        super.onDestroy()
     }
 
     private fun onPermissionActionClicked() {
@@ -144,35 +175,18 @@ class MainActivity : Activity() {
         if (!::messageView.isInitialized) return
 
         if (LocationPermissionGate.hasPreciseLocation(this)) {
-            when {
-                shouldSkipPreparation() -> {
-                    showWalkSurface()
-                    startDebugProbeIfNeeded()
-                }
-
-                walkSurface != null -> Unit
-
-                preparationScreen != null || startPlaceholderShown -> Unit
-
-                else -> showPreparation()
-            }
+            showWalkSurface()
+            startWalkService()
+            bindWalkService()
             return
         }
 
-        stopDebugProbe()
-        preparationScreen?.stop()
-        val hadPreparation = preparationScreen != null || startPlaceholderShown
-        preparationScreen = null
-        startPlaceholderShown = false
-        preparationController?.close()
-        preparationController = null
-        if (walkSurface != null || hadPreparation) {
-            walkSurface?.stop()
-            walkSurface = null
-            setContentView(createPermissionGateView())
-        }
+        stopWalk()
+        walkSurface?.release()
+        walkSurface = null
+        setContentView(createPermissionGateView())
 
-        if (permissionRequested && !LocationPermissionGate.hasPreciseLocation(this)) {
+        if (permissionRequested) {
             messageView.setText(R.string.permission_requesting)
             actionButton.visibility = View.GONE
             return
@@ -196,117 +210,58 @@ class MainActivity : Activity() {
     private fun showWalkSurface() {
         if (walkSurface != null) return
         val surface = WalkSurface(this)
+        surface.onWalkEnded = { if (!isFinishing) finish() }
         walkSurface = surface
         setContentView(surface)
+        walkController?.let(surface::bind)
         surface.start()
     }
 
-    private fun showPreparation() {
-        walkSurface?.stop()
-        walkSurface = null
-        startPlaceholderShown = false
-        stopDebugProbe()
-
-        if (preparationController == null) {
-            preparationController = AndroidPreparationController(
-                context = this,
-                fixedCenter = readFixedCenter(),
-            )
-        }
-
-        val screen = PreparationScreen(
-            context = this,
-            controller = preparationController!!,
-            onReady = ::onPreparationReady,
-            onCancelled = ::onPreparationCancelled,
-        )
-        preparationScreen = screen
-        setContentView(screen)
-        screen.start()
-    }
-
-    private fun onPreparationReady() {
-        preparationScreen = null
-        startPlaceholderShown = false
-        showWalkSurface()
-        startDebugProbeIfNeeded()
-    }
-
-    private fun onPreparationCancelled() {
-        preparationScreen = null
-        showStartPlaceholder()
-    }
-
-    private fun showStartPlaceholder() {
-        startPlaceholderShown = true
-        setContentView(createStartPlaceholderView())
-    }
-
-    private fun createStartPlaceholderView(): LinearLayout {
-        val density = resources.displayMetrics.density
-        val padding = (24 * density).toInt()
-
-        val title = TextView(this).apply {
-            text = getString(R.string.start_placeholder_title)
-            setTextColor(Color.WHITE)
-            textSize = 18f
-            gravity = Gravity.CENTER
-        }
-
-        val action = Button(this).apply {
-            id = R.id.start_placeholder_action
-            text = getString(R.string.start_placeholder_action)
-            setOnClickListener { showPreparation() }
-        }
-
-        return LinearLayout(this).apply {
-            id = R.id.start_placeholder
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setBackgroundColor(Color.BLACK)
-            setPadding(padding, padding, padding, padding)
-            addView(title)
-            addView(
-                action,
-                LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                ).apply {
-                    topMargin = (16 * density).toInt()
-                },
-            )
-        }
-    }
-
-    private fun shouldSkipPreparation(): Boolean {
-        val debuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-        return debuggable && intent.getBooleanExtra(EXTRA_SKIP_DATA_PREPARATION, false)
-    }
-
-    private fun readFixedCenter(): LatLon? {
-        val debuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-        if (!debuggable) return null
-        val lat = intent.getDoubleExtra(EXTRA_TEST_CENTER_LAT, Double.NaN)
-        val lon = intent.getDoubleExtra(EXTRA_TEST_CENTER_LON, Double.NaN)
-        if (!lat.isFinite() || !lon.isFinite()) return null
-        return try {
-            LatLon(lat, lon)
-        } catch (_: IllegalArgumentException) {
-            null
-        }
-    }
-
-    private fun startDebugProbeIfNeeded() {
-        if (locationDebugProbe != null) return
+    private fun startWalkService() {
         if (!LocationPermissionGate.hasPreciseLocation(this)) return
-        val debuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-        if (!debuggable) return
-        locationDebugProbe = LocationDebugProbe(this).also { it.start() }
+        maybeRequestNotificationPermission()
+        startForegroundService(
+            Intent(this, WalkService::class.java).setAction(WalkService.ACTION_START),
+        )
     }
 
-    private fun stopDebugProbe() {
-        locationDebugProbe?.stop()
-        locationDebugProbe = null
+    private fun bindWalkService() {
+        if (serviceBound) return
+        serviceBound = bindService(
+            Intent(this, WalkService::class.java),
+            connection,
+            Context.BIND_AUTO_CREATE,
+        )
+    }
+
+    private fun unbindWalkService() {
+        if (!serviceBound) return
+        unbindService(connection)
+        serviceBound = false
+        walkController = null
+        walkSurface?.unbind()
+    }
+
+    private fun stopWalk() {
+        walkController?.stopWalk()
+        stopService(Intent(this, WalkService::class.java))
+        walkController = null
+        walkSurface?.unbind()
+    }
+
+    private fun maybeRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT < 33) return
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        if (notificationPermissionRequested) return
+        notificationPermissionRequested = true
+        requestPermissions(
+            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+            REQUEST_NOTIFICATIONS,
+        )
     }
 
     private fun actionLabel(): Int =
@@ -326,8 +281,6 @@ class MainActivity : Activity() {
     }
 
     companion object {
-        const val EXTRA_SKIP_DATA_PREPARATION = "com.randomwalk.app.extra.SKIP_DATA_PREPARATION"
-        const val EXTRA_TEST_CENTER_LAT = "com.randomwalk.app.extra.TEST_CENTER_LAT"
-        const val EXTRA_TEST_CENTER_LON = "com.randomwalk.app.extra.TEST_CENTER_LON"
+        private const val REQUEST_NOTIFICATIONS = 200
     }
 }

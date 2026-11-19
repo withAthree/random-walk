@@ -51,6 +51,8 @@ class WalkSurface(
     }
 
     fun bind(controller: WalkController) {
+        if (this.controller === controller) return
+        unbind()
         this.controller = controller
         controller.addListener(stateListener)
         render(controller.currentState())
