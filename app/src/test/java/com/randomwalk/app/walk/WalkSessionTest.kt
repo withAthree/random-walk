@@ -5,6 +5,7 @@ import com.randomwalk.app.geo.LatLon
 import com.randomwalk.app.location.LocationSample
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.random.Random
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -127,5 +128,120 @@ class WalkSessionTest {
         assertEquals(0, session.state.remainingMeters)
         assertTrue(session.state.targetBearingDegrees!!.isFinite())
         assertEquals(northLeg, session.state.leg)
+    }
+
+    @Test
+    fun rerollWithoutAFixIsANoOp() {
+        val generator = RecordingGenerator(legAt(0f))
+        val session = WalkSession(generator)
+        session.reroll()
+        assertTrue(generator.calls.isEmpty())
+        assertTrue(session.state.waitingForLocation)
+    }
+
+    @Test
+    fun rerollStartsANewLegFromTheCurrentPosition() {
+        val generator = RecordingGenerator(legAt(0f), legAt(90f))
+        val session = WalkSession(generator)
+        session.onLocation(sample(origin, 0L))
+        val moved = GeoMath.offsetMeters(origin, 20.0, 0.0)
+        session.onLocation(sample(moved, 5_000L))
+
+        session.reroll()
+
+        assertEquals(moved, generator.calls.last().from)
+        assertEquals(legAt(90f), session.state.leg)
+    }
+
+    @Test
+    fun rerollRecordsTheAbandonedBearing() {
+        val generator = RecordingGenerator(legAt(0f), legAt(90f))
+        val session = WalkSession(generator)
+        session.onLocation(sample(origin, 0L))
+
+        session.reroll()
+
+        assertEquals(listOf(0f), generator.calls.last().excludedBearings)
+    }
+
+    @Test
+    fun arrivalDoesNotRecordMemory() {
+        val northLeg = legAt(0f)
+        val generator = RecordingGenerator(northLeg, legAt(90f))
+        val session = WalkSession(generator)
+        session.onLocation(sample(origin, 0L))
+        session.onLocation(sample(northLeg.target, 500L))
+        session.onLocation(sample(northLeg.target, 2_000L))
+
+        assertEquals(2, generator.calls.size)
+        assertEquals(emptyList<Float>(), generator.calls.last().excludedBearings)
+    }
+
+    @Test
+    fun memoryKeepsAtMostSixEntriesAndDropsTheOldest() {
+        val generator = RecordingGenerator(
+            legAt(0f), legAt(10f), legAt(20f), legAt(30f),
+            legAt(40f), legAt(50f), legAt(60f), legAt(70f),
+        )
+        val session = WalkSession(generator)
+        session.onLocation(sample(origin, 0L))
+        repeat(7) { session.reroll() }
+
+        assertEquals(listOf(10f, 20f, 30f, 40f, 50f, 60f), generator.calls.last().excludedBearings)
+    }
+
+    @Test
+    fun entryBeyondFiveHundredMetersNoLongerExcludes() {
+        val generator = RecordingGenerator(legAt(0f), legAt(90f), legAt(180f))
+        val session = WalkSession(generator)
+        session.onLocation(sample(origin, 0L))
+        session.reroll()
+
+        val far = GeoMath.offsetMeters(origin, 600.0, 0.0)
+        session.onLocation(sample(far, 5_000L))
+        session.reroll()
+
+        assertEquals(listOf(90f), generator.calls.last().excludedBearings)
+    }
+
+    @Test
+    fun arrivalAvoidsTheActiveMemory() {
+        val generator = RecordingGenerator(legAt(0f), legAt(90f), legAt(180f))
+        val session = WalkSession(generator)
+        session.onLocation(sample(origin, 0L))
+        session.reroll()
+
+        val rerollTarget = legAt(90f).target
+        session.onLocation(sample(rerollTarget, 5_000L))
+        session.onLocation(sample(rerollTarget, 6_500L))
+
+        assertEquals(listOf(0f), generator.calls.last().excludedBearings)
+    }
+
+    @Test
+    fun stopClearsTheMemoryAndTheActiveLeg() {
+        val generator = RecordingGenerator(legAt(0f), legAt(90f), legAt(180f))
+        val session = WalkSession(generator)
+        session.onLocation(sample(origin, 0L))
+        session.reroll()
+
+        session.stop()
+        assertTrue(session.state.waitingForLocation)
+        assertNull(session.state.leg)
+
+        session.onLocation(sample(origin, 10_000L))
+        assertEquals(emptyList<Float>(), generator.calls.last().excludedBearings)
+    }
+
+    @Test
+    fun repeatedRerollsAtOneSpotAlwaysProduceALeg() {
+        val session = WalkSession(RandomLegGenerator(Random(5)))
+        session.onLocation(sample(origin, 0L))
+        repeat(8) { session.reroll() }
+
+        assertTrue(!session.state.waitingForLocation)
+        assertTrue(session.state.leg!!.bearingDegrees >= 0f)
+        assertTrue(session.state.leg!!.bearingDegrees < 360f)
+        assertTrue(session.state.leg!!.distanceMeters in 50..100)
     }
 }
