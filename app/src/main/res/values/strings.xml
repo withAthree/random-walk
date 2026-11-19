@@ -8,6 +8,7 @@
     <string name="permission_retry">重新授权</string>
     <string name="permission_open_settings">打开系统设置</string>
     <string name="walk_hint">箭头朝上 = 你正对要去的方向，转身对齐它</string>
+    <string name="walk_waiting">定位中</string>
     <string name="preparation_preparing">正在准备步行数据…</string>
     <string name="preparation_no_network">需要网络连接才能准备此区域</string>
     <string name="preparation_timeout">准备超时，请重试</string>

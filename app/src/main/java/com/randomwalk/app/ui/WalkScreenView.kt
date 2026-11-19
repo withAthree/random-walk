@@ -22,6 +22,19 @@ class WalkScreenView(context: Context) : View(context) {
             invalidate()
         }
 
+    var waitingForLocation: Boolean = true
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    val distanceText: String
+        get() = if (waitingForLocation) {
+            context.getString(R.string.walk_waiting)
+        } else {
+            "$distanceMeters m"
+        }
+
     var distanceMeters: Int = 0
         set(value) {
             field = value
@@ -48,6 +61,11 @@ class WalkScreenView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        if (waitingForLocation) {
+            canvas.drawText(distanceText, width / 2f, height / 2f, textPaint)
+            return
+        }
+
         val cx = width / 2f
         val cy = height * 0.55f
         val scale = min(width, height).toFloat()
@@ -62,7 +80,7 @@ class WalkScreenView(context: Context) : View(context) {
     }
 
     private fun drawDistance(canvas: Canvas) {
-        canvas.drawText("$distanceMeters m", width / 2f, height * 0.18f, textPaint)
+        canvas.drawText(distanceText, width / 2f, height * 0.18f, textPaint)
     }
 
     private fun buildArrow(cx: Float, cy: Float, scale: Float) {
