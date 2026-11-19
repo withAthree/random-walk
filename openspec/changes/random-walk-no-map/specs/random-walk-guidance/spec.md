@@ -8,7 +8,7 @@ Provide single-purpose, map-free walking guidance: the app chooses a random dire
 
 ### Requirement: Single-purpose leg view
 
-While a leg is active, the app SHALL display only a direction arrow and the remaining distance to the current target, apart from the one-time first-run hint and system permission UI. It MUST NOT display a map, route, total distance, return-to-start control, or completion screen. The screen SHALL remain awake.
+While a leg is active, the app SHALL display only a direction arrow and the remaining distance to the current target, apart from the one-time first-run hint and system permission UI. It MUST NOT display a map, route, total distance, return-to-start control, or completion screen. The screen SHALL remain awake while the walk view is in the foreground.
 
 #### Scenario: Active leg view
 - **WHEN** a leg is active
@@ -17,6 +17,22 @@ While a leg is active, the app SHALL display only a direction arrow and the rema
 #### Scenario: No completion state
 - **WHEN** the walker reaches a target
 - **THEN** the app starts the next leg without showing a completion screen
+
+### Requirement: Background walking
+
+While a walk is active, the app SHALL keep the current leg, reroll memory, and location updates running when the screen turns off or the app is backgrounded, and SHALL return to the same leg when the walker brings the app back. It SHALL run a location-type foreground service with an ongoing notification while a walk is active.
+
+#### Scenario: Screen off or app backgrounded
+- **WHEN** the walker turns off the screen or switches to another app during a walk
+- **THEN** location updates and the current leg continue
+
+#### Scenario: Returning to the app
+- **WHEN** the walker returns to the app
+- **THEN** the same leg, reroll memory, and current remaining distance are shown
+
+#### Scenario: Ongoing notification
+- **WHEN** a walk is active
+- **THEN** an ongoing notification reports waiting for location or the remaining distance and opens the app when tapped
 
 ### Requirement: Random direction and distance
 
@@ -144,7 +160,7 @@ The app SHALL provide guidance without network access, a map, street data, a pre
 
 ### Requirement: Location permission and exit
 
-The app SHALL require precise location access before starting a walk. If access is denied or no location fix is available, it SHALL explain the problem and MUST NOT show guidance. Pressing Back during a walk SHALL stop guidance and stop location and sensor updates.
+The app SHALL require precise location access before starting a walk. If access is denied or no location fix is available, it SHALL explain the problem and MUST NOT show guidance. Pressing Back during a walk, stopping from the ongoing notification, or removing the app from the recent-tasks list SHALL stop guidance and stop location and sensor updates. The app SHALL request notification permission on Android 13 and later; if the walker denies it, guidance SHALL still start, but the system may hide the ongoing notification.
 
 #### Scenario: Permission denied
 - **WHEN** precise location permission is denied
@@ -157,3 +173,15 @@ The app SHALL require precise location access before starting a walk. If access 
 #### Scenario: Leaving the walk
 - **WHEN** the walker presses Back during a walk
 - **THEN** guidance stops and location and sensor updates stop
+
+#### Scenario: Removing the app from recents
+- **WHEN** the walker removes the app from the recent-tasks list during a walk
+- **THEN** guidance stops and location and sensor updates stop
+
+#### Scenario: Stopping from the notification
+- **WHEN** the walker taps the notification's stop action during a walk
+- **THEN** guidance stops and location and sensor updates stop
+
+#### Scenario: Notification permission denied
+- **WHEN** the walker denies notification permission on Android 13 or later
+- **THEN** guidance still starts and location updates continue

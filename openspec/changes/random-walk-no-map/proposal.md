@@ -12,6 +12,7 @@ Walking should be a low-decision activity, but the current implementation depend
 - If the walker cannot continue (river, wall, closure), a long press anywhere abandons the current target and generates a new leg from the current position, with no penalty. A one-time hint teaches the gesture.
 - Reroll avoids recently abandoned directions: the app remembers up to 6 bearings it was told to abandon within 500 m of the current position and draws new bearings outside ±45° of them. The memory is invisible, adds no penalty or history record, and clears when the walk ends.
 - Use only location and compass sensors. The app does not require network access, an account, a backend, a map, or a prebuilt pack. Remove the `INTERNET` permission and OSM/ODbL attribution.
+- Keep the active walk running while the screen is off or the app is backgrounded with a location-type foreground service and an ongoing notification; Back, the notification stop action, or removing the app from recents stops it.
 - Keep the existing app skeleton, compass loop, location sampling, and geo math as the baseline. Delete the now-unused data-layer and preparation UI code.
 - Add a privacy statement: location is processed on-device and is never uploaded.
 - The old `random-walk-app` change remains as history. This change supersedes only its street-data/route-generation intent. Completed foundation tasks 1.1–1.4, 2.1–2.4, 3.1, and 3.3 are reused; 3.2, 3.4, and 4.x–8.x are obsolete.
@@ -29,7 +30,7 @@ None. The existing in-flight `walk-guidance` capability belongs to the supersede
 ## Impact
 
 - **App code**: add random-leg and target generation plus the no-map walk flow; remove `data/` street-data/network modules, the preparation screen and controller, Overpass/OSM code, offline-pack handling, and their tests.
-- **Permissions and dependencies**: remove `INTERNET`; keep Play Services Location; add no runtime dependencies.
+- **Permissions and dependencies**: remove `INTERNET`; keep Play Services Location; add foreground-service and notification permissions (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `POST_NOTIFICATIONS`) and no runtime dependencies; do not add `ACCESS_BACKGROUND_LOCATION`.
 - **Data and licensing**: remove OSM/Overpass usage and ODbL attribution; no backend, bundled map data, or offline packs.
 - **Tests**: add JVM tests for random ranges, target bearing and distance, arrival hysteresis, and reroll; update instrumentation tests for the arrow, distance, and hint; device checks include airplane mode and a blocked route.
 - **Existing change**: leave `random-walk-app` in place and do not mark it complete; archive it as superseded after this change is implemented and verified.
