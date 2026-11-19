@@ -9,7 +9,7 @@ import android.util.Log
 
 class CompassController(
     context: Context,
-    private val targetBearingDegrees: Float,
+    targetBearingDegrees: Float,
     private val onArrowAngleDegrees: (Float) -> Unit,
 ) : SensorEventListener {
 
@@ -18,6 +18,7 @@ class CompassController(
     private val rotationVector = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
     private val rotationMatrix = FloatArray(9)
     private val smoother = HeadingSmoother()
+    private val targetTracker = CompassTargetTracker(targetBearingDegrees)
     private var registered = false
     private var lastTimestampNanos = 0L
     private var lowAccuracy = false
@@ -30,6 +31,7 @@ class CompassController(
             return
         }
         smoother.reset()
+        targetTracker.resetHeading()
         lastTimestampNanos = 0L
         lowAccuracy = false
         registered = sensorManager.registerListener(
@@ -44,6 +46,7 @@ class CompassController(
         if (!registered) return
         sensorManager.unregisterListener(this)
         registered = false
+        targetTracker.resetHeading()
         lastTimestampNanos = 0L
     }
 
@@ -60,9 +63,11 @@ class CompassController(
         lastTimestampNanos = event.timestamp
 
         val heading = smoother.update(rawBearing, deltaSeconds, lowAccuracy)
-        onArrowAngleDegrees(
-            CompassMath.arrowAngleDegrees(targetBearingDegrees, heading),
-        )
+        onArrowAngleDegrees(targetTracker.onHeading(heading))
+    }
+
+    fun updateTargetBearing(degrees: Float) {
+        targetTracker.updateTargetBearing(degrees)?.let(onArrowAngleDegrees)
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
