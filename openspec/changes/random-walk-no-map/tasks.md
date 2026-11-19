@@ -25,7 +25,7 @@ The old `random-walk-app` change completed the foundation this change reuses: ta
 - [x] 3.1 Delete `app/src/main/java/com/randomwalk/app/data/`, `preparation/`, `walk/FakeWalk.kt`, and `debug/LocationDebugProbe.kt` (and their tests) now that the new walk path does not reference them. Verify with `rg` that no production or test source references `Street`, `Overpass`, `Tile`, `Preparation`, or `FakeWalk`, and that `./gradlew :app:testDebugUnitTest` passes.
 - [x] 3.2 Remove `INTERNET` from `AndroidManifest.xml`; remove the `org.json` and `sqlite-jdbc` test dependencies and the UnitTest-only `noJdk` compiler override from `app/build.gradle.kts`. Verify the merged manifest has only the location, foreground-service, and notification permissions (and no `ACCESS_BACKGROUND_LOCATION`) and `./gradlew :app:assembleDebug` passes.
 - [x] 3.3 Remove obsolete strings, ids, and `docs/street-data-schema.md`; check `rg` for `preparation_`, `start_placeholder`, `street`, `overpass`, and `ODbL`. Verify with `./gradlew :app:testDebugUnitTest` and `:app:assembleDebugAndroidTest`.
-- [ ] 3.4 Inspect the built APK permissions with `aapt dump permissions app/build/outputs/apk/debug/app-debug.apk` (or the available APK analyzer) and confirm `android.permission.INTERNET` is absent. Record the command and result in the change notes.
+- [x] 3.4 Inspect the built APK permissions with `aapt dump permissions app/build/outputs/apk/debug/app-debug.apk` (or the available APK analyzer) and confirm `android.permission.INTERNET` is absent. Record the command and result in the change notes.
 
 ## 4. Gesture, privacy, and documentation
 
@@ -45,3 +45,7 @@ The old `random-walk-app` change completed the foundation this change reuses: ta
 - Archive `random-walk-no-map` after implementation, device verification, and review are complete.
 - Archive the old `random-walk-app` change as superseded; do not mark its incomplete 4.x–8.x tasks as done.
 - Verify the archived specs contain `random-walk-guidance` and do not accidentally sync the old `walk-guidance`/`street-data` capabilities.
+
+## Verification notes
+
+- 2026-11-19, §3.4: `/home/hkx/Android/Sdk/build-tools/35.0.0/aapt dump permissions app/build/outputs/apk/debug/app-debug.apk` → `INTERNET` and `ACCESS_BACKGROUND_LOCATION` absent; permissions: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `POST_NOTIFICATIONS`.
