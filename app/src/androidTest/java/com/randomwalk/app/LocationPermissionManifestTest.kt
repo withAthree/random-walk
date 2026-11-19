@@ -34,8 +34,8 @@ class LocationPermissionManifestTest {
             "ACCESS_COARSE_LOCATION missing from manifest",
             requested.contains(Manifest.permission.ACCESS_COARSE_LOCATION),
         )
-        assertTrue(
-            "INTERNET missing from manifest",
+        assertFalse(
+            "INTERNET must not be requested",
             requested.contains(Manifest.permission.INTERNET),
         )
         assertTrue(
